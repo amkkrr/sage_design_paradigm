@@ -1,6 +1,6 @@
 {
   "name": "Sage Design Paradigm",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "format": "plain-json-reference-not-dtcg",
   "units": {"geometry": "px", "duration": "ms", "paddingArrays": "CSS shorthand order"},
   "scope": "Framework-neutral defaults; not an implemented component library or accessibility certification",

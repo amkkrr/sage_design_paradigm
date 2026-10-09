@@ -1,0 +1,79 @@
+{
+  "name": "Ash Marble optional palette and material",
+  "version": "1.1.0",
+  "format": "plain-json-reference-not-dtcg",
+  "extends": "design-tokens.json",
+  "palette": "ash-marble",
+  "defaultTone": "pale",
+  "tones": {
+    "pale": {
+      "page": "#F1F2F3",
+      "surface-1": "#F9FAFB",
+      "surface-2": "#EDF0F1",
+      "ink-1": "#313A41",
+      "ink-2": "#55636C",
+      "ink-3": "#646F76",
+      "grid": "#E2E7E9",
+      "axis": "#79868D",
+      "hairline": "#D9DFE2",
+      "wash": "rgba(49,58,65,0.055)",
+      "focus": "#2A78D6"
+    },
+    "gray": {
+      "page": "#E1E4E5",
+      "surface-1": "#F0F1F1",
+      "surface-2": "#DCE1E2",
+      "ink-1": "#30383E",
+      "ink-2": "#505F68",
+      "ink-3": "#5A656D",
+      "grid": "#D8DDDE",
+      "axis": "#728087",
+      "hairline": "#CBD1D3",
+      "wash": "rgba(48,56,62,0.06)",
+      "focus": "#2A78D6"
+    }
+  },
+  "accents": {
+    "heroMetric": "#345F78",
+    "secondaryMetric": "#376C67",
+    "rareCategory": "#79545D",
+    "heroMetricRule": "Only one primary KPI per section uses heroMetric by default; never encode good/bad status with decorative accents",
+    "secondaryMetricRule": "Use selectively when justified by information hierarchy or explicit metric identity, not on every KPI"
+  },
+  "dataColors": {
+    "s1": "#3F6F8B",
+    "s2": "#64847D",
+    "s3": "#795F6A",
+    "s4": "#97816A",
+    "s5": "#8196A5",
+    "other": "#A8B3BA",
+    "priorPeriod": "#A9B9C2",
+    "currentPeriod": "#3F6F8B",
+    "note": "Series colors identify data, not status. Keep legends, labels, and non-color cues. Inherit existing semantic status tokens until independently validated."
+  },
+  "material": {
+    "default": "marble",
+    "options": ["flat", "marble"],
+    "marble": {
+      "asset": "../assets/textures/ash-marble.svg",
+      "opacity": 0.12,
+      "repeat": "no-repeat",
+      "size": "cover",
+      "attachTo": ["large-analytics-card", "chart-panel", "large-insight-panel", "large-activity-panel"],
+      "excludeFrom": ["page", "kpi-direct-on-canvas", "button", "input", "select", "segmented-control", "tooltip", "dialog", "small-control", "table-cell"],
+      "rendering": "decorative pseudo-element behind content; pointer-events:none; never blend over type; nested controls and exact-value tables use opaque flat surfaces"
+    }
+  },
+  "themeCompatibility": {
+    "existingCycle": ["auto", "light", "dark"],
+    "applyTonesWhenResolvedMode": "light",
+    "darkPolicy": "fall back to existing Sage dark tokens, disable marble unless a separately tested dark-material profile is added",
+    "paletteAndToneAreIndependentFromMode": true
+  },
+  "typography": {
+    "primary": "Space Grotesk",
+    "cjk": "Noto Sans SC",
+    "mono": "Space Mono",
+    "assetPolicy": "Font names are stacks only; target applications must legally source and load font files themselves."
+  }
+}
