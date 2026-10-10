@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" fill="none" aria-hidden="true">
+  <!-- Transparent, low-contrast decorative veins. Use only behind large card content. -->
+  <defs>
+    <filter id="warp" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.017" numOctaves="2" seed="8" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="10" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  <g filter="url(#warp)" stroke="#71808A" stroke-linecap="round">
+    <path d="M-55 461C65 452 110 420 190 367S305 306 373 311 488 304 565 251 713 156 836 145 919 106 1014 32" stroke-width="1.1" opacity=".24"/>
+    <path d="M-51 472C74 453 115 435 197 378S307 314 377 320 489 309 575 258 715 164 837 157 934 110 1005 46" stroke-width="3.6" opacity=".075"/>
+    <path d="M197 372C211 346 216 313 248 294S293 286 311 256 332 226 355 214" stroke-width=".9" opacity=".19"/>
+    <path d="M560 258C602 284 635 291 681 277S760 258 790 283" stroke-width="1" opacity=".14"/>
+    <path d="M714 160C735 139 725 112 759 90S794 61 804 21" stroke-width=".8" opacity=".15"/>
+    <path d="M90 398C139 400 161 368 182 354" stroke-width=".75" opacity=".1"/>
+    <path d="M420 325C458 340 477 355 492 393S524 439 578 452" stroke-width=".6" opacity=".085"/>
+  </g>
+</svg>

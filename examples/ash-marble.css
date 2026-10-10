@@ -1,0 +1,111 @@
+/* Optional Ash Marble implementation recipe, NOT an implemented component library.
+   Apply data-palette="ash-marble", data-ash-tone="pale"|"gray" and
+   data-resolved-theme="light"|"dark" to <html>. Resolve "auto" in app code.
+   Font files are not bundled; load Space Grotesk and Noto Sans SC in your app. */
+
+:root[data-palette="ash-marble"] {
+  font-family: "Space Grotesk", "Noto Sans SC", "Noto Sans CJK SC",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+:root[data-palette="ash-marble"][data-resolved-theme="light"] {
+  --page: #F1F2F3;
+  --surface-1: #F9FAFB;
+  --surface-2: #EDF0F1;
+  --ink-1: #313A41;
+  --ink-2: #55636C;
+  --ink-3: #646F76;
+  --grid: #E2E7E9;
+  --axis: #79868D;
+  --hairline: #D9DFE2;
+  --wash: rgba(49, 58, 65, .055);
+  --focus: #2A78D6;
+  --accent-hero: #345F78;
+  --accent-secondary: #376C67;
+  --s1: #3F6F8B;
+  --s2: #64847D;
+  --s3: #795F6A;
+  --s4: #97816A;
+  --s5: #8196A5;
+  --other: #A8B3BA;
+  --data-s1: var(--s1);
+  --data-s2: var(--s2);
+  --data-s3: var(--s3);
+  --data-s4: var(--s4);
+  --data-s5: var(--s5);
+  --data-other: var(--other);
+  --data-prior-period: #A9B9C2;
+  --data-current-period: #3F6F8B;
+}
+
+:root[data-palette="ash-marble"][data-resolved-theme="light"][data-ash-tone="gray"] {
+  --page: #E1E4E5;
+  --surface-1: #F0F1F1;
+  --surface-2: #DCE1E2;
+  --ink-1: #30383E;
+  --ink-2: #505F68;
+  --ink-3: #5A656D;
+  --grid: #D8DDDE;
+  --axis: #728087;
+  --hairline: #CBD1D3;
+  --wash: rgba(48, 56, 62, .06);
+}
+
+/* Preserve the existing Sage dark palette when dark resolves; marble is light-only. */
+:root[data-palette="ash-marble"][data-resolved-theme="dark"] {
+  --accent-hero: var(--ink-1);
+  --accent-secondary: var(--ink-2);
+}
+
+/* Opt in on large cards ONLY: never apply this class to the page or controls. */
+:root[data-palette="ash-marble"][data-resolved-theme="light"] .ash-marble-card {
+  position: relative;
+  isolation: isolate;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+:root[data-palette="ash-marble"][data-resolved-theme="light"] .ash-marble-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: url("../assets/textures/ash-marble.svg") center / cover no-repeat;
+  opacity: .12;
+}
+
+/* A Flat material switch disables the pseudo-element without changing palette. */
+:root[data-palette="ash-marble"][data-ash-material="flat"] .ash-marble-card::before {
+  display: none;
+}
+
+/* When only a single KPI is highlighted, color signals hierarchy, not status. */
+:root[data-palette="ash-marble"][data-resolved-theme="light"] .kpi--primary .kpi__value {
+  color: var(--accent-hero);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Controls remain flat and neutral; don't attach .ash-marble-card to them. */
+:root[data-palette="ash-marble"] :is(button, input, select, textarea) {
+  background-image: none;
+}
+
+/* Nested controls and exact-value tables use opaque, flat surfaces: a transparent
+   background-image:none alone would still let the card texture show through. */
+:root[data-palette="ash-marble"][data-resolved-theme="light"] .ash-marble-card :is(button, input, select, textarea, dialog, summary, table, .control-set, [role="tooltip"], [role="dialog"], [role="listbox"], [role="menu"], [role="combobox"]) {
+  background-color: var(--surface-1);
+  background-image: none;
+}
+
+/* Guard common opt-in mistakes without suppressing unrelated control icons. */
+:root[data-palette="ash-marble"] .ash-marble-card:is(html, body, button, input, select, textarea, dialog, td, th, .control-set, [role="button"], [role="tooltip"], [role="dialog"], [role="listbox"], [role="menu"], [role="combobox"], [role="tablist"])::before {
+  content: none;
+}
+
+@media (forced-colors: active) {
+  .ash-marble-card::before { display: none !important; }
+}
