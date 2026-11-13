@@ -46,8 +46,8 @@
 | 页面容器 | 居中，max-width 1240px，padding 28px 32px 64px |
 | 上限内容宽度 | 1176px，派生值，不是独立固定宽度 |
 | 页头 | flex / baseline / space-between / gap16，底部 padding18 + hairline |
-| 筛选条 | flex-wrap / gap10 / padding14px 0；sticky top0，z5，page 底色 |
-| 尾部度量控件 | `margin-left:auto`，不插入占位 spacer |
+| 筛选条 | flex-wrap / gap10 / padding14px 0；sticky top0，z5，page 底色；滚动容器配 `scroll-padding-top` 防遮挡焦点 |
+| 尾部度量控件 | `margin-inline-start:auto`（物理等价 `margin-left:auto`），不插入占位 spacer |
 | 卡片网格 | `repeat(12,minmax(0,1fr))`，gap16，margin-top20 |
 | 常用跨度 | 12 / 7 / 5；6 为可选等分变体 |
 | 卡片 | padding 16px 18px 14px，radius8，1px hairline |
@@ -58,7 +58,7 @@
 
 1176px 内容宽度下，7/5 跨度外宽约679.33/480.67px，默认卡内宽各减38px。这些是盒模型推导，不保证任何字体、滚动条、缩放下像素完全一致。
 
-间距以16–24px主分区节奏为主，允许2/4/6/8/10/12/14px微调；并非严格4px或8px网格。顶栏按钮间距可在8–14px内按密度选择。
+间距以16–24px主分区节奏为主，允许2/4/6/8/10/12/14px微调；并非严格4px或8px网格。顶栏按钮间距可在8–14px内按密度选择。CSS 架构优先使用 `@layer base, theme, components, utilities;` 管理基线与主题覆盖优先级，用逻辑属性与 `:not()` 替代全局 `*` 重置或先设再清覆盖，局部组件优先采用 `@container` 容器查询适配可用宽度。
 
 ## 4. 排版与数字层级
 
@@ -89,9 +89,9 @@ font-family: "Space Mono", "Noto Sans SC", "Noto Sans CJK SC",
 | 坐标/辅助标记 | 11–12/400 | 按图形定位 | ink-3 |
 | Tooltip | 12/400，值600 | 1.7–1.8 | 分层使用ink |
 
-- 主指标单位降级为24–26px，次指标单位约13px；前缀/后缀、币种和单位由业务决定。
+- 上表字号为 16px 默认根字号下的参考尺寸；CSS 落地应使用 `rem`（主指标单位降级为 `1.5–1.625rem`，次指标单位 `0.8125rem`），不在 `:root` 或 `html` 硬编码覆盖根字号，并在 `<head>` 声明 `<meta name="text-scale" content="scale">` 以响应系统无障碍字号缩放。前缀/后缀、币种和单位由业务决定。
 - 对齐比较的数值、表格数字、坐标与提示值使用 `tabular-nums`；不强制把所有 KPI 变成等宽字体。
-- 路径、标识符、精确数值等按需使用 Mono；正文不大面积使用等宽。
+- 路径、标识符、精确数值等按需使用 Mono；正文不大面积使用等宽。中西文及多字体混排容器建议使用 `font-size-adjust: from-font`（附 `@supports not` 回退）稳定 x-height；短标题渐进增强使用 `text-wrap: balance`，正文说明段落使用 `text-wrap: pretty`。
 - 不使用全大写加宽字距的 kicker 建立层级。
 - 字体应本地托管或嵌入，不强制依赖外部字体服务。此仓库只提供字体栈，不提供字体文件或授权保证。
 - 中文字重随本机字体变化。来源采用的 Regular/Bold 分档不是跨平台像素一致承诺。
@@ -227,7 +227,7 @@ font-family: "Space Mono", "Noto Sans SC", "Noto Sans CJK SC",
 - 搜索输入与选择提交分离；输入法合成时不截获导航/提交快捷键。
 - “清除筛选”“重置”“刷新”是不同动作，必须分别定义。
 - URL只记录有分享价值的字段；无效值安全回退。push/replace、后退恢复范围需明确。
-- 主题默认循环自动→浅色→深色→自动；项目独立的 localStorage key，自动模式移除显式值。存储失败不应阻断页面。
+- 主题默认循环自动→浅色→深色→自动；`<head>` 声明 `<meta name="color-scheme" content="light dark">`，`:root` 默认 `color-scheme: light dark`，通过 `@media (prefers-color-scheme: dark)` 兜底配合 `light-dark()` 保证无 JS 时仍能跟随系统深浅色。使用项目独立的 localStorage key，自动模式移除显式值，并监听 `storage` 事件同步多标签页覆盖。存储失败不应阻断页面。
 - 样式加载前可应用已存主题；自动模式跟随系统，手动选择优先。
 - 异步统计、明细、排序和翻页均需避免旧响应覆盖新条件。来源局部请求缺少防护的现状不是可复用标准。
 
@@ -278,18 +278,18 @@ font-family: "Space Mono", "Noto Sans SC", "Noto Sans CJK SC",
 | reduced-motion | 禁用非必要运动，保留明确即时状态反馈 |
 | forced-colors | 保证选中、焦点、边框可辨；图表附标签/表格，不只依靠保留色值 |
 
-980/600是默认断点，不是禁止添加断点。不要将趋势图的最小viewBox宽320套到所有图形，也不要将固定374px热力图套到任意类别矩阵。
+980/600是默认断点（CSS 中建议使用 `61.25em`/`37.5em` 及组件级 `@container` 容器查询），不是禁止添加断点。不要将趋势图的最小viewBox宽320套到所有图形，也不要将固定374px热力图套到任意类别矩阵。
 
-至少在1440、980、600、390、320px视口检查；再验证文本缩放、长标题、长标识符及大量选项。桌面紧凑尺寸不等于触摸可达性：小图元应有足够大的替代操作入口。
+至少在1440、980、600、390、320px视口检查；再验证文本缩放、长标题、长标识符及大量选项。交互控件在细指针下至少 `24×24` CSS px，在粗指针触屏（`@media (pointer: coarse)`）下放大至至少 `44×44` CSS px，`:hover` 仅在 `@media (hover: hover)` 下应用；小图元应有足够大的替代操作入口。
 
 ## 13. 可访问性落地要求
 
 以下是接入验收要求，**不表示两份来源已经全部实现或验证**：
 
-- 优先原生按钮、input、range、details和dialog，所有控件有可理解名称。
+- 优先原生按钮、input、range、details和dialog，所有控件有可理解名称；多组密集显示控制栏可采用单 Tab 停靠点的 `role="toolbar" focusgroup="toolbar wrap"`（附漫游 `tabindex` 回退），并用 `aria-disabled="true"` 保持方向键可达。
 - focus-visible默认2px focus、offset2；不能仅删除outline而不提供替代。
 - 分段选中、禁用、展开、当前路径和meter状态有相应语义。
-- 表头使用scope；`aria-sort`放在对应th上，而不是排序按钮上。
+- 表头使用scope，长表可为 `thead` 与行头 `tbody th` 配置不透明 `position: sticky` 及横向滚动边缘视觉提示；`aria-sort`放在对应th上，而不是排序按钮上。
 - 可点击图形支持Enter/Space，或提供等价原生按钮；不是只设置tabindex。
 - 导航、局部重绘和关闭浮层后焦点可预测；模态与非模态焦点策略明确。
 - 状态更新使用合适的status；需要立即处理的错误才使用alert，避免读屏噪声。

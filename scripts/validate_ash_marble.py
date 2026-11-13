@@ -202,11 +202,17 @@ def validate(repo: Path, baseline_ref: str) -> None:
     for reference in markup.refs:
         require(local_reference(repo, html_path, reference) is not None, "Demo must not require remote assets")
     for source in (repo / "examples").glob("*.css"):
-        for reference in re.findall(r"url\([\"']?([^\"')]+)", source.read_text(encoding="utf-8")):
+        style_text = source.read_text(encoding="utf-8")
+        require("@layer base, theme, components, utilities;" in style_text, f"Missing cascade layer order in {source.name}")
+        require(re.search(r"font-size\s*:\s*[\d.]+px", style_text) is None, f"Hardcoded px font-size in {source.name}")
+        require(re.search(r"^\s*\*\s*\{", style_text, re.M) is None, f"Global * reset in {source.name}")
+        for reference in re.findall(r"url\([\"']?([^\"')]+)", style_text):
             require(local_reference(repo, source, reference) is not None, "Demo CSS must not require remote assets")
     js = (repo / "examples/ash-marble-demo.js").read_text(encoding="utf-8")
     require(not any(pattern in js for pattern in [".innerHTML", "insertAdjacentHTML", "eval(", "fetch(", "XMLHttpRequest"]), "Unexpected unsafe DOM/network API in demo")
     require("演示数据" in html and "fallback" in html and "scope=\"col\"" in html, "Demo evidence/data/table boundary missing")
+    require('<meta name="text-scale" content="scale">' in html and '<meta name="color-scheme" content="light dark">' in html, "Missing text-scale or color-scheme meta tag")
+    require('role="toolbar"' in html and 'focusgroup="toolbar wrap"' in html, "Missing composite toolbar semantics")
     paradigm = (repo / "docs/DESIGN_PARADIGM.md").read_text(encoding="utf-8")
     require(re.findall(r"^## (\d+)\.", paradigm, re.M) == [str(i) for i in range(1, 16)], "Baseline 15-section coverage changed")
     print(f"PASS: {links} Markdown links/anchors, fences, HTML/ARIA IDs, local assets, safe demo DOM and all 15 baseline sections")

@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="zh-CN" data-palette="ash-marble" data-theme-mode="auto" data-resolved-theme="light" data-ash-tone="pale" data-ash-material="marble">
+<html lang="zh-CN" data-palette="ash-marble" data-theme-mode="auto" data-ash-tone="pale" data-ash-material="marble">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="text-scale" content="scale">
+  <meta name="color-scheme" content="light dark">
   <title>Ash Marble · Sage 可选主题示例</title>
-  <!-- Resolve the stored/system theme before styles; no font or network service is required. -->
+  <!-- Sync stored/system theme before styles; CSS still follows OS color-scheme if JS is disabled. -->
   <script src="ash-marble-demo.js"></script>
   <link rel="stylesheet" href="ash-marble-demo.css">
   <link rel="stylesheet" href="ash-marble.css">
@@ -16,15 +18,17 @@
       <p>静态概念示例 · v1.1.0 · 演示数据，非真实统计</p>
     </header>
 
-    <div class="filters" role="group" aria-label="显示设置">
+    <div class="filters" role="toolbar" focusgroup="toolbar wrap" aria-label="显示设置">
       <div class="control-set" role="group" aria-label="配色方案">
         <button type="button" data-palette-choice="sage" aria-pressed="false" disabled>Sage</button>
         <button type="button" data-palette-choice="ash-marble" aria-pressed="true" disabled>Ash Marble</button>
       </div>
+      <span class="toolbar-sep" role="separator" aria-orientation="vertical"></span>
       <div class="control-set" role="group" aria-label="Ash 浅色调">
         <button type="button" data-tone-choice="pale" aria-pressed="true" disabled>苍白</button>
         <button type="button" data-tone-choice="gray" aria-pressed="false" disabled>苍灰</button>
       </div>
+      <span class="toolbar-sep" role="separator" aria-orientation="vertical"></span>
       <div class="control-set" role="group" aria-label="Ash 浅色材质">
         <button type="button" data-material-choice="marble" aria-pressed="true" disabled>石纹</button>
         <button type="button" data-material-choice="flat" aria-pressed="false" disabled>纯色</button>
@@ -58,7 +62,7 @@
     </section>
 
     <div class="grid">
-      <section class="card ash-marble-card span-7" aria-labelledby="trend-title">
+      <article class="card ash-marble-card span-7" aria-labelledby="trend-title">
         <div class="card-head">
           <h2 id="trend-title">每日已完成请求</h2>
           <span>本期与上期 · 请求数</span>
@@ -79,33 +83,33 @@
         <p class="chart-caption" id="trend-caption">零基线，固定上限 25,000；每组为两个时期对应的自然日。本期合计 128,430，上期 114,000；精确值见下表。</p>
         <details>
           <summary>查看每日精确值（演示数据）</summary>
-          <div class="table-scroll" tabindex="0" role="region" aria-label="每日请求明细，可横向滚动">
+          <div class="table-scroll" tabindex="0" role="region" aria-labelledby="trend-table-caption">
             <table>
-              <caption>本期与上期对应日的已完成请求（UTC；单位：请求）</caption>
+              <caption id="trend-table-caption">本期与上期对应日的已完成请求（UTC；单位：请求）</caption>
               <thead><tr><th scope="col">本期日期</th><th scope="col">上期日期</th><th scope="col" class="numeric">本期</th><th scope="col" class="numeric">上期</th></tr></thead>
               <tbody id="trend-rows"></tbody>
               <tfoot><tr><th scope="row" colspan="2">合计</th><td class="numeric" id="trend-current-total"></td><td class="numeric" id="trend-prior-total"></td></tr></tfoot>
             </table>
           </div>
         </details>
-      </section>
+      </article>
 
-      <section class="card ash-marble-card span-5" aria-labelledby="distribution-title">
+      <article class="card ash-marble-card span-5" aria-labelledby="distribution-title">
         <div class="card-head"><h2 id="distribution-title">本期请求构成</h2><span>任务分类</span></div>
         <div class="distribution" id="distribution-bars" role="img" aria-labelledby="distribution-title" aria-describedby="distribution-caption"></div>
         <p class="chart-caption" id="distribution-caption">占比 = 类别已完成请求 / 本期全部 128,430 个已完成请求；四类互斥且完整，含“其他”。显示 1 位小数，不将分类色或变化方向解释为健康状态。</p>
         <details>
           <summary>查看分类精确值（演示数据）</summary>
-          <div class="table-scroll" tabindex="0" role="region" aria-label="请求分类明细，可横向滚动">
+          <div class="table-scroll" tabindex="0" role="region" aria-labelledby="distribution-table-caption">
             <table>
-              <caption>同一模拟样本的分类计数、占比与分母</caption>
+              <caption id="distribution-table-caption">同一模拟样本的分类计数、占比与分母</caption>
               <thead><tr><th scope="col">任务类别</th><th scope="col" class="numeric">请求数</th><th scope="col" class="numeric">占比</th></tr></thead>
               <tbody id="distribution-rows"></tbody>
               <tfoot><tr><th scope="row">合计</th><td class="numeric" id="distribution-total"></td><td class="numeric">100.0%</td></tr></tfoot>
             </table>
           </div>
         </details>
-      </section>
+      </article>
     </div>
 
     <footer>

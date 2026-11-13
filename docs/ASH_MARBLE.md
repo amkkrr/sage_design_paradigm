@@ -2,7 +2,7 @@
 
 > 可选视觉扩展，版本 1.1.0。压缩包中的看板概念是视觉方向，**不是原 cc-usage-viewer / disk-usage 的已实现能力，也不是可直接运行的生产组件库**。原 Sage light / dark token 除版本号外全部原样保留。
 >
-> 基线：[DESIGN_PARADIGM.md](DESIGN_PARADIGM.md)；接入契约：[ADOPTION_TEMPLATE.md](ADOPTION_TEMPLATE.md)；来源边界：[EXTRACTION_NOTES.md](EXTRACTION_NOTES.md)；本次审查：[AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)。
+> 基线：[DESIGN_PARADIGM.md](DESIGN_PARADIGM.md)；接入契约：[ADOPTION_TEMPLATE.md](ADOPTION_TEMPLATE.md)；来源边界：[EXTRACTION_NOTES.md](EXTRACTION_NOTES.md)；初始审查：[AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)；现代 Web 升级审查：[AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)。
 
 ## 1. 视觉意图与不变约束
 
@@ -20,10 +20,10 @@
 | tone | `pale`（默认）/ `gray` | 仅 Ash + 有效浅色生效；切回后保留选择 |
 | material | `marble`（默认）/ `flat` | 仅 Ash + 有效浅色的大卡片生效；不影响色调、业务数据或分母 |
 
-- 自动模式跟随系统变化；手动模式优先。存储 key 必须项目独立；回到自动模式删除显式 mode 覆盖。存储不可用不得阻断页面。
-- 在样式加载前解析已有设置，避免错误的首帧主题。非法存储值回退到各维度默认值。
+- 自动模式跟随系统变化；手动模式优先。存储 key 必须项目独立；回到自动模式删除显式 mode 覆盖，并监听 `storage` 事件保持多标签页状态同步。存储不可用不得阻断页面。
+- `<head>` 声明 `<meta name="color-scheme" content="light dark">`，`:root` 默认保持 `color-scheme: light dark`（手动选择时同步更新 `<meta>` 与 `data-resolved-theme`）。在样式加载前解析已有设置以避免首帧闪烁；若脚本不可用，CSS 仍通过 `@media (prefers-color-scheme)` 与 `light-dark()` 自动跟随系统深浅色。非法存储值回退到各维度默认值。
 - 深色沿用原 Sage dark，**禁用石纹**，主 KPI 回到原 `ink-1`；不反色、不继承浅色矿物蓝或浅色图表颜色。
-- Sage palette、深色或 forced-colors 下 tone / material 不生效；示例禁用相应按钮但保留选择，并在状态文字中说明。主题变化不重绘业务数据或改变图表轴、统计范围；通常保留焦点。如果系统变化导致当前 tone/material 按钮被禁用，将焦点移到主题按钮且不滚动页面。
+- Sage palette、深色或 forced-colors 下 tone / material 不生效；示例设置栏采用单 Tab 停靠点的 `role="toolbar" focusgroup="toolbar wrap"`（无原生 `focusgroup` 时回退漫游 `tabindex`），对不生效按钮设置 `aria-disabled="true"` 并忽略触发（无脚本初始态保留原生 `disabled`），在状态文字中说明回退，同时允许方向键可达并保留当前焦点。主题变化不重绘业务数据或改变图表轴、统计范围。
 - CSS recipe 只负责样式，不负责系统偏好、存储、状态机或业务组件。示例 JS 演示上述状态机，但不是目标应用的实现保证。
 
 ### 浅色板
@@ -55,21 +55,21 @@
 
 ## 4. 几何、字体与组件
 
-沿用 1240px 居中容器、默认 padding28/32/64、12 列、gap16、7/5 大卡片、card padding16/18/14、980/600 默认断点。示例是四格而非五格 KPI：`minmax(260px,1.15fr) repeat(3,minmax(0,1fr))`，不补空占位；≤980px 首格通栏、其余两列，卡片通栏；≤600px 卡片横向 padding14。52/600 主数字、24/600 次数字、17/600 页题、14/600 卡片题、原 Seg 和 Ghost Button 几何均保留。
+沿用 1240px 居中容器、默认 padding28/32/64、12 列、gap16、7/5 大卡片、card padding16/18/14、980/600 默认断点。样式表采用 `@layer base, theme, components, utilities;` 显式分层与逻辑属性（`margin-inline-start`、`border-inline-start` 等），不做全局 `*` 重置；页面外边距使用 `em` 视口媒体查询（`61.25em` / `37.5em`），内部网格与卡片使用 `@container` 容器查询（附无容器查询浏览器的 `@supports not` 回退）。示例是四格而非五格 KPI：`minmax(260px,1.15fr) repeat(3,minmax(0,1fr))`，不补空占位；窄容器下首格通栏、其余两列，卡片通栏；更窄容器下卡片横向 padding14。字号统一使用 `rem`（按 16px 默认根字号折算 52/600 主数字、24/600 次数字、17/600 页题、14/600 卡片题，不在 `:root`/`html` 硬编码根字号），`<head>` 声明 `<meta name="text-scale" content="scale">` 以响应系统无障碍字号缩放。
 
-英文／数字以 **Space Grotesk** 为首选，中文 **Noto Sans SC**，代码／路径按需使用 **Space Mono**。本仓库不打包、不下载字体，写字体名不代表已加载。项目自行合法获取并本地托管字体，验收实际加载和 fallback。示例明确仅用本机 fallback；所有可比较数字使用 `tabular-nums`，不把所有 KPI 强制改为等宽。
+英文／数字以 **Space Grotesk** 为首选，中文 **Noto Sans SC**，代码／路径按需使用 **Space Mono**；设置 `font-size-adjust: from-font`（附 `@supports not` 回退）稳定中西文及回退字体的 x-height，短标题与正文分别渐进增强 `text-wrap: balance` 与 `text-wrap: pretty`。本仓库不打包、不下载字体，写字体名不代表已加载。项目自行合法获取并本地托管字体，验收实际加载和 fallback。示例明确仅用本机 fallback；所有可比较数字使用 `tabular-nums`，不把所有 KPI 强制改为等宽。
 
-示例 Seg 用原生按钮 + `aria-pressed` 即时反馈，额外用中性下划线标记选中标签，避免只依赖轻边框或背景差异；保留原默认几何。共享滑动底板是基线的**可选渐进增强**，示例未实现，不宣称动效已验证。非必要动画不新增；reduced-motion 下取消过渡/动画。选中、禁用、焦点、图表精确值与强制颜色替代入口都必须可辨。
+示例设置栏采用 `role="toolbar" focusgroup="toolbar wrap"`（以边框绘制 `role="separator"` 分隔线以兼容强制颜色模式）+ 原生按钮 `aria-pressed` 即时反馈，额外用中性下划线标记选中标签，`:hover` 仅在 `@media (hover: hover)` 下生效；桌面最小目标尺寸为 `24px`，粗指针触屏（`@media (pointer: coarse)`）自动放大至 `44px`，并为吸顶筛选栏配置 `scroll-padding-top` 防止反向聚焦遮挡（及 `scroll-state(stuck: top)` 吸顶底边提示）。数据表格表头 `thead` 与行头 `tbody th` 使用不透明底色 `position: sticky`，横向滚动区提供滚动驱动边缘遮罩提示（无 `animation-timeline: scroll()` 时回退 `IntersectionObserver`）。共享滑动底板是基线的**可选渐进增强**，示例未实现，不宣称动效已验证。非必要动画不新增；reduced-motion 下取消过渡/动画。选中、禁用、焦点、图表精确值与强制颜色替代入口都必须可辨。
 
 ## 5. 接入与回退
 
 ```html
 <html data-palette="ash-marble" data-resolved-theme="light" data-ash-tone="pale" data-ash-material="marble">
   <!-- 页面保持纯色；只给大型内容卡片加材质类。 -->
-  <section class="ash-marble-card" aria-labelledby="trend-title">
+  <article class="ash-marble-card" aria-labelledby="trend-title">
     <h2 id="trend-title">Usage Trend</h2>
     <!-- 真实数据与可访问精确值入口由项目提供。 -->
-  </section>
+  </article>
 </html>
 ```
 
@@ -94,7 +94,7 @@
 
 趋势为零基线、固定 25000 上限、七组本期/上期对应日；图例用虚/实边框及标签区分，不能仅依赖颜色。图表有名称、摘要及原生 details 中的精确表格；表头 scope、数值右对齐。图形和长表仅在自己的容器横滚，页面不整体溢出。样本无缺失/零分母；不得拿该固定样本覆盖目标项目的异常验收。脚本不可用时明确缺失，而非填零。
 
-示例存储使用 `sage-ash-marble-demo:{palette,mode,tone,material}`；mode 回到 auto 删除其 key。tone/material 在非 Ash 浅色或 forced-colors 时禁用但保留；模式切换保留已展开的精确表格，失效控件的焦点按第 2 节回退。无字体下载、外部服务或动态 HTML 拼接。
+示例存储使用 `sage-ash-marble-demo:{palette,mode,tone,material}`；mode 回到 auto 删除其 key，并监听 `storage` 事件同步其他标签页修改。tone/material 在非 Ash 浅色或 forced-colors 时以 `aria-disabled="true"` 停用触发但保留选择与工具栏方向键焦点；模式切换保留已展开的精确表格。无字体下载、外部服务或动态 HTML 拼接。
 
 ## 7. 验证与接入验收
 
@@ -108,7 +108,7 @@ node --check examples/ash-marble-demo.js
 git diff --check
 ```
 
-本次执行结果及完整 15 节覆盖矩阵见[审查记录](audits/AUDIT-0001-ash-marble-2026-10-09.md)。以下仍是**每个目标项目自己的验收项**，不能因示例通过而默认勾选：
+初始 15 节覆盖矩阵见 [AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)，现代 Web 平台能力升级验证见 [AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)。以下仍是**每个目标项目自己的验收项**，不能因示例通过而默认勾选：
 
 - [ ] 基线 light/dark 的全部 token 未变；未选择 Ash 的旧组件不受影响。
 - [ ] 所有 palette / auto/light/dark / pale/gray / flat/marble 组合和回退；存储失效、非法值、首帧及系统偏好变化。
