@@ -15,14 +15,25 @@
   const key = dimension => "sage-ash-marble-demo:" + dimension;
   let storageAvailable = true;
   const state = {};
-  for (const dimension of Object.keys(choices)) {
-    let saved;
-    try { saved = window.localStorage.getItem(key(dimension)); }
-    catch { storageAvailable = false; }
-    state[dimension] = choices[dimension].includes(saved) ? saved : defaults[dimension];
+
+  function loadStoredState() {
+    for (const dimension of Object.keys(choices)) {
+      let saved;
+      try { saved = window.localStorage.getItem(key(dimension)); }
+      catch { storageAvailable = false; }
+      state[dimension] = choices[dimension].includes(saved) ? saved : defaults[dimension];
+    }
   }
+  loadStoredState();
+
   let ready = false;
   const resolveMode = () => state.mode === "auto" ? (systemTheme.matches ? "dark" : "light") : state.mode;
+
+  function syncColorSchemeMeta() {
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.content = state.mode === "auto" ? "light dark" : state.mode;
+  }
+
   function applyDisplay() {
     const resolved = resolveMode();
     root.dataset.palette = state.palette;
@@ -30,26 +41,27 @@
     root.dataset.resolvedTheme = resolved;
     root.dataset.ashTone = state.tone;
     root.dataset.ashMaterial = state.material;
+    syncColorSchemeMeta();
     if (!ready) return;
     const activeAsh = state.palette === "ash-marble" && resolved === "light" && !forcedColors.matches;
-    const focused = document.activeElement;
-    const moveFocus = !activeAsh && focused && focused.matches("[data-tone-choice],[data-material-choice]");
     for (const dimension of ["palette", "tone", "material"]) {
       for (const button of document.querySelectorAll("[data-" + dimension + "-choice]")) {
+        button.disabled = false;
         button.setAttribute("aria-pressed", String(button.dataset[dimension + "Choice"] === state[dimension]));
-        button.disabled = dimension !== "palette" && !activeAsh;
+        const inactive = dimension !== "palette" && !activeAsh;
+        button.setAttribute("aria-disabled", String(inactive));
       }
     }
     const modeButton = document.getElementById("theme-mode");
     modeButton.disabled = false;
+    modeButton.setAttribute("aria-disabled", "false");
     const next = choices.mode[(choices.mode.indexOf(state.mode) + 1) % choices.mode.length];
     modeButton.textContent = "主题：" + labels[state.mode];
     modeButton.setAttribute("aria-label", "主题模式：" + labels[state.mode] + "，当前" + labels[resolved] + "；切换为" + labels[next]);
     const detail = forcedColors.matches ? "强制颜色模式，浅色调和石纹停用" : activeAsh ? labels[state.tone] + " · " + labels[state.material] : (resolved === "dark" ? "沿用 Sage 深色，石纹禁用" : "原 Sage 浅色，石纹禁用");
     document.getElementById("display-status").textContent = labels[state.palette] + " · " + labels[state.mode] + "（" + labels[resolved] + "） · " + detail + (storageAvailable ? "" : " · 存储不可用，仅当前页面生效");
-    // A system preference can disable the currently focused tone/material button.
-    if (moveFocus) modeButton.focus({ preventScroll: true });
   }
+
   function select(dimension, value) {
     if (!choices[dimension].includes(value)) return;
     state[dimension] = value;
@@ -59,10 +71,75 @@
     } catch { storageAvailable = false; }
     applyDisplay();
   }
+
   // Synchronous initial resolution, before CSS: avoid a wrong initial theme.
   applyDisplay();
   systemTheme.addEventListener("change", () => { if (state.mode === "auto") applyDisplay(); });
   forcedColors.addEventListener("change", applyDisplay);
+  window.addEventListener("storage", event => {
+    if (!event.key || event.key.startsWith("sage-ash-marble-demo:")) {
+      loadStoredState();
+      applyDisplay();
+    }
+  });
+
+  function setupToolbarFallback(bar) {
+    if ("focusGroup" in HTMLElement.prototype) return;
+    const items = [...bar.querySelectorAll("button")];
+    if (!items.length) return;
+    items.forEach((b, i) => { b.tabIndex = i ? -1 : 0; });
+    bar.addEventListener("focusin", ({ target }) => {
+      if (items.includes(target)) items.forEach(b => { b.tabIndex = b === target ? 0 : -1; });
+    });
+    bar.addEventListener("keydown", event => {
+      const active = document.activeElement;
+      const index = items.indexOf(active);
+      if (index < 0) return;
+      const vertical = bar.getAttribute("aria-orientation") === "vertical";
+      const rtl = getComputedStyle(bar).direction === "rtl";
+      const steps = vertical
+        ? { ArrowDown: 1, ArrowUp: -1 }
+        : { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1 };
+      let nextIndex = null;
+      if (Object.hasOwn(steps, event.key)) {
+        nextIndex = (index + steps[event.key] + items.length) % items.length;
+      } else if (event.key === "Home") {
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        nextIndex = items.length - 1;
+      }
+      if (nextIndex !== null) {
+        event.preventDefault();
+        items[nextIndex].focus();
+      }
+    });
+  }
+
+  function setupScrollHintsFallback() {
+    if (typeof CSS !== "undefined" && CSS.supports("animation-timeline", "scroll()")) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    for (const scroller of document.querySelectorAll(".chart-scroll, .table-scroll")) {
+      const content = scroller.firstElementChild;
+      if (!content) continue;
+      scroller.style.display = "flex";
+      content.style.flex = "1 0 auto";
+      const start = document.createElement("div");
+      const end = document.createElement("div");
+      start.setAttribute("aria-hidden", "true");
+      end.setAttribute("aria-hidden", "true");
+      start.style.cssText = "flex:0 0 1px;inline-size:1px;block-size:1px;margin-inline-end:-1px;pointer-events:none";
+      end.style.cssText = "flex:0 0 1px;inline-size:1px;block-size:1px;margin-inline-start:-1px;pointer-events:none";
+      scroller.prepend(start);
+      scroller.append(end);
+      const observer = new IntersectionObserver(entries => {
+        for (const { target, isIntersecting } of entries) {
+          scroller.classList.toggle(target === start ? "more-start" : "more-end", !isIntersecting);
+        }
+      }, { root: scroller });
+      observer.observe(start);
+      observer.observe(end);
+    }
+  }
 
   const sample = {
     current: [14000, 17000, 18000, 16000, 20000, 21000, 22430],
@@ -146,19 +223,28 @@
       document.getElementById("distribution-rows").append(row);
     }
   }
+
   document.addEventListener("DOMContentLoaded", () => {
     renderSample();
     ready = true;
+    applyDisplay();
+    const toolbar = document.querySelector('[role="toolbar"]');
+    if (toolbar) setupToolbarFallback(toolbar);
+    setupScrollHintsFallback();
     for (const dimension of ["palette", "tone", "material"]) {
       for (const button of document.querySelectorAll("[data-" + dimension + "-choice]")) {
         button.addEventListener("click", () => {
-          if (!button.disabled) select(dimension, button.dataset[dimension + "Choice"]);
+          if (!button.disabled && button.getAttribute("aria-disabled") !== "true") {
+            select(dimension, button.dataset[dimension + "Choice"]);
+          }
         });
       }
     }
     document.getElementById("theme-mode").addEventListener("click", () => {
-      select("mode", choices.mode[(choices.mode.indexOf(state.mode) + 1) % choices.mode.length]);
+      const modeButton = document.getElementById("theme-mode");
+      if (!modeButton.disabled && modeButton.getAttribute("aria-disabled") !== "true") {
+        select("mode", choices.mode[(choices.mode.indexOf(state.mode) + 1) % choices.mode.length]);
+      }
     });
-    applyDisplay();
   });
 })();

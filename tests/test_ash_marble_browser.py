@@ -84,6 +84,7 @@ class AshMarbleBrowser(unittest.TestCase):
           return {
             palette:root.dataset.palette, mode:root.dataset.themeMode, resolved:root.dataset.resolvedTheme,
             tone:root.dataset.ashTone, material:root.dataset.ashMaterial,
+            metaScheme:document.querySelector('meta[name="color-scheme"]').content,
             page:getComputedStyle(document.body).backgroundColor,
             card:getComputedStyle(card).backgroundColor,
             hero:getComputedStyle(document.getElementById('total-calls')).color,
@@ -91,7 +92,7 @@ class AshMarbleBrowser(unittest.TestCase):
             change:getComputedStyle(document.getElementById('change-calls')).color,
             texture:!['none','normal'].includes(before.content) && before.display!=='none' && Number(before.opacity)>0,
             opacity:before.opacity, pointer:before.pointerEvents, overflow:getComputedStyle(card).overflow,
-            disabled:[...document.querySelectorAll('[data-tone-choice],[data-material-choice]')].every(b=>b.disabled),
+            disabled:[...document.querySelectorAll('[data-tone-choice],[data-material-choice]')].every(b=>b.getAttribute('aria-disabled')==='true' && !b.disabled),
             values:[...document.querySelectorAll('.metric-value')].map(n=>n.textContent),
             scrollWidth:root.scrollWidth, viewport:innerWidth
           };
@@ -107,6 +108,7 @@ class AshMarbleBrowser(unittest.TestCase):
                 colors = ASH["tones"][tone] if active else BASE["colors"][resolved]
                 initial = self.snapshot()
                 self.assertEqual(initial["resolved"], resolved)
+                self.assertEqual(initial["metaScheme"], "light dark" if mode == "auto" else mode)
                 self.assertEqual(initial["page"], rgb(colors["page"]))
                 self.assertEqual(initial["card"], rgb(colors["surface-1"]))
                 self.assertEqual(initial["hero"], rgb(ASH["accents"]["heroMetric"] if active else colors["ink-1"]))
@@ -222,8 +224,11 @@ class AshMarbleBrowser(unittest.TestCase):
         self.page.wait_for_function("document.documentElement.dataset.resolvedTheme === 'light'")
         gray.focus()
         self.page.emulate_media(color_scheme="dark")
-        self.page.wait_for_function("document.activeElement.id === 'theme-mode'")
-        self.assertTrue(theme.evaluate("n=>n===document.activeElement"), "System-disabled control needs predictable focus fallback")
+        self.page.wait_for_function("document.documentElement.dataset.resolvedTheme === 'dark'")
+        self.assertEqual(gray.get_attribute("aria-disabled"), "true")
+        self.assertTrue(gray.evaluate("n=>n===document.activeElement"), "aria-disabled toolbar item keeps focus in place")
+        gray.press("Enter")
+        self.assertEqual(self.snapshot()["tone"], "pale", "aria-disabled item must ignore activation")
 
     def test_04_storage_unavailable_and_script_unavailable(self) -> None:
         self.context.add_init_script("Object.defineProperty(window,'localStorage',{get(){throw new DOMException('blocked','SecurityError')}})")
@@ -232,21 +237,23 @@ class AshMarbleBrowser(unittest.TestCase):
         self.page.locator('[data-tone-choice="gray"]').click()
         self.assertEqual(self.snapshot()["tone"], "gray")
         self.assertEqual(self.snapshot()["values"][0], "128,430")
-        no_script = self.browser.new_context(java_script_enabled=False)
-        try:
-            page = no_script.new_page()
-            page.goto(URL)
-            self.assertIn("脚本不可用", page.locator("noscript").inner_text())
-            self.assertEqual(page.locator("#total-calls").inner_text(), "—")
-            self.assertEqual(page.locator("button:not(:disabled)").count(), 0)
-        finally:
-            no_script.close()
+        for scheme, expected_page in [("light", ASH["tones"]["pale"]["page"]), ("dark", BASE["colors"]["dark"]["page"])]:
+            no_script = self.browser.new_context(java_script_enabled=False, color_scheme=scheme)
+            try:
+                page = no_script.new_page()
+                page.goto(URL)
+                self.assertIn("脚本不可用", page.locator("noscript").inner_text())
+                self.assertEqual(page.locator("#total-calls").inner_text(), "—")
+                self.assertEqual(page.locator("button:not(:disabled)").count(), 0)
+                self.assertEqual(page.locator("body").evaluate("n=>getComputedStyle(n).backgroundColor"), rgb(expected_page))
+            finally:
+                no_script.close()
 
     def test_05_preferences_nested_control_guards_and_text_stress(self) -> None:
         self.page.emulate_media(reduced_motion="reduce")
         self.assertEqual(self.page.locator("body").evaluate("n=>getComputedStyle(n).transitionDuration"), "0s")
         self.assertEqual(self.page.locator("body").evaluate("n=>getComputedStyle(n).animationName"), "none")
-        targets=self.page.locator('button:not(:disabled),summary').evaluate_all('nodes=>nodes.map(n=>n.getBoundingClientRect().height)')
+        targets = self.page.locator('button:not(:disabled),summary').evaluate_all('nodes=>nodes.map(n=>n.getBoundingClientRect().height)')
         self.assertTrue(all(height >= 24 for height in targets), 'Small interactive target without a larger alternative')
         self.page.emulate_media(forced_colors="active")
         self.page.wait_for_function("document.getElementById('display-status').textContent.includes('强制颜色模式')")
@@ -254,7 +261,7 @@ class AshMarbleBrowser(unittest.TestCase):
         self.assertTrue(self.snapshot()["disabled"])
         self.assertEqual(self.page.locator('[data-tone-choice="pale"]').evaluate("n=>getComputedStyle(n).outlineWidth"), "1px")
         self.page.emulate_media(forced_colors="none")
-        self.page.wait_for_function("!document.querySelector('[data-tone-choice]').disabled")
+        self.page.wait_for_function("document.querySelector('[data-tone-choice]').getAttribute('aria-disabled') === 'false'")
         guard = self.page.evaluate("""() => {
           const card=document.querySelector('.card');
           const button=document.createElement('button');button.textContent='Nested control';card.append(button);
@@ -301,6 +308,111 @@ class AshMarbleBrowser(unittest.TestCase):
             self.load_state(mode="dark")
             self.page.evaluate("window.scrollTo(0,0)")
             self.page.screenshot(path=str(self.artifacts / "sage-dark-320.png"), full_page=True)
+
+    def test_06_modern_web_guidance_capabilities_and_fallbacks(self) -> None:
+        meta = self.page.evaluate("""() => ({
+          textScale: document.querySelector('meta[name="text-scale"]')?.content,
+          colorScheme: document.querySelector('meta[name="color-scheme"]')?.content,
+          fontSizeAdjust: getComputedStyle(document.body).fontSizeAdjust,
+          h1Wrap: getComputedStyle(document.querySelector('h1')).textWrap,
+          pWrap: getComputedStyle(document.querySelector('p')).textWrap,
+          scrollPaddingTop: parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop),
+          filtersHeight: document.querySelector('.filters').getBoundingClientRect().height,
+          cardTag: document.querySelector('.card').tagName,
+          cardContainerType: getComputedStyle(document.querySelector('.card')).containerType,
+          theadSticky: getComputedStyle(document.querySelector('thead')).position,
+          rowThSticky: getComputedStyle(document.querySelector('tbody th')).position
+        })""")
+        self.assertEqual(meta["textScale"], "scale")
+        self.assertEqual(meta["colorScheme"], "light dark")
+        self.assertNotEqual(meta["fontSizeAdjust"], "none")
+        self.assertGreater(float(meta["fontSizeAdjust"]), 0)
+        self.assertEqual(meta["h1Wrap"], "balance")
+        self.assertEqual(meta["pWrap"], "pretty")
+        self.assertGreaterEqual(meta["scrollPaddingTop"], meta["filtersHeight"])
+        self.assertEqual(meta["cardTag"], "ARTICLE")
+        self.assertEqual(meta["cardContainerType"], "inline-size")
+        self.assertEqual(meta["theadSticky"], "sticky")
+        self.assertEqual(meta["rowThSticky"], "sticky")
+
+        # Native focusgroup single-tab-stop and cross-group arrow navigation.
+        first_btn = self.page.locator('[data-palette-choice="sage"]')
+        first_btn.focus()
+        self.page.keyboard.press("ArrowRight")
+        self.assertEqual(self.page.evaluate("document.activeElement.dataset.paletteChoice"), "ash-marble")
+        self.page.keyboard.press("ArrowRight")
+        self.assertEqual(self.page.evaluate("document.activeElement.dataset.toneChoice"), "pale")
+        self.page.keyboard.press("Tab")
+        self.assertEqual(self.page.evaluate("document.activeElement.className"), "chart-scroll")
+
+        # Root rem scaling (simulating OS text-scale enlarging 1rem from 16px to 24px).
+        self.page.evaluate("document.documentElement.style.fontSize = '24px'")
+        scaled = self.page.evaluate("""() => ({
+          hero: getComputedStyle(document.getElementById('total-calls')).fontSize,
+          secondary: getComputedStyle(document.getElementById('input-tokens')).fontSize,
+          plotHeight: document.querySelector('.plot').getBoundingClientRect().height
+        })""")
+        self.assertEqual(scaled["hero"], "78px")
+        self.assertEqual(scaled["secondary"], "36px")
+        self.assertAlmostEqual(scaled["plotHeight"], 390, delta=.5)
+        for width in WIDTHS:
+            self.page.set_viewport_size({"width": width, "height": 1000})
+            self.assertLessEqual(self.snapshot()["scrollWidth"], width, "150% root rem scale overflow")
+        self.page.evaluate("document.documentElement.style.fontSize = ''")
+        self.page.set_viewport_size({"width": 1440, "height": 1000})
+
+        # Cross-tab storage event sync.
+        self.page.evaluate("""() => {
+          localStorage.setItem('sage-ash-marble-demo:tone', 'gray');
+          window.dispatchEvent(new StorageEvent('storage', { key: 'sage-ash-marble-demo:tone', newValue: 'gray' }));
+        }""")
+        self.assertEqual(self.snapshot()["tone"], "gray")
+
+        # Touch coarse-pointer target size (>= 44px) and 320px reflow.
+        touch_ctx = self.browser.new_context(viewport={"width": 320, "height": 800}, has_touch=True, is_mobile=True)
+        try:
+            touch_page = touch_ctx.new_page()
+            touch_page.goto(URL)
+            touch_page.wait_for_function("document.getElementById('total-calls').textContent === '128,430'")
+            heights = touch_page.locator("button,summary").evaluate_all("nodes=>nodes.map(n=>n.getBoundingClientRect().height)")
+            self.assertTrue(all(h >= 44 for h in heights), f"Coarse pointer target < 44px: {heights}")
+            self.assertLessEqual(touch_page.evaluate("document.documentElement.scrollWidth"), 320)
+        finally:
+            touch_ctx.close()
+
+        # Fallback paths when focusGroup and scroll-driven animation-timeline are absent.
+        fallback_ctx = self.browser.new_context(viewport={"width": 320, "height": 800})
+        fallback_ctx.add_init_script("""
+          delete HTMLElement.prototype.focusGroup;
+          const origSupports = CSS.supports.bind(CSS);
+          CSS.supports = (prop, val) => prop === 'animation-timeline' ? false : origSupports(prop, val);
+        """)
+        try:
+            fb_page = fallback_ctx.new_page()
+            fb_page.goto(URL)
+            fb_page.wait_for_function("document.getElementById('total-calls').textContent === '128,430'")
+            tab_indices = fb_page.locator('[role="toolbar"] button').evaluate_all("nodes=>nodes.map(n=>n.tabIndex)")
+            self.assertEqual(tab_indices, [0, -1, -1, -1, -1, -1, -1])
+            fb_page.locator('[data-palette-choice="sage"]').focus()
+            fb_page.keyboard.press("End")
+            self.assertEqual(fb_page.evaluate("document.activeElement.id"), "theme-mode")
+            fb_page.keyboard.press("ArrowRight")
+            self.assertEqual(fb_page.evaluate("document.activeElement.dataset.paletteChoice"), "sage")
+            fb_page.keyboard.press("Tab")
+            self.assertTrue(fb_page.evaluate("document.activeElement.classList.contains('chart-scroll')"))
+            fb_page.locator("summary").first.click()
+            scroller = fb_page.locator(".table-scroll").first
+            fb_page.wait_for_function("""() => {
+              const s = document.querySelector('.table-scroll');
+              return s.classList.contains('more-end') && !s.classList.contains('more-start');
+            }""")
+            scroller.evaluate("n => { n.scrollLeft = n.scrollWidth; }")
+            fb_page.wait_for_function("""() => {
+              const s = document.querySelector('.table-scroll');
+              return s.classList.contains('more-start') && !s.classList.contains('more-end');
+            }""")
+        finally:
+            fallback_ctx.close()
 
 
 if __name__ == "__main__":
