@@ -90,6 +90,11 @@ class AshMarbleBrowser(unittest.TestCase):
             hero:getComputedStyle(document.getElementById('total-calls')).color,
             secondary:getComputedStyle(document.getElementById('input-tokens')).color,
             change:getComputedStyle(document.getElementById('change-calls')).color,
+            track:getComputedStyle(document.querySelector('.track')).backgroundColor,
+            priorBar:getComputedStyle(document.querySelector('.bar.prior')).backgroundColor,
+            priorBorder:getComputedStyle(document.querySelector('.bar.prior')).borderTopColor,
+            currentBar:getComputedStyle(document.querySelector('.bar.current')).backgroundColor,
+            fills:[...document.querySelectorAll('.fill')].map(n=>getComputedStyle(n).backgroundColor),
             texture:!['none','normal'].includes(before.content) && before.display!=='none' && Number(before.opacity)>0,
             opacity:before.opacity, pointer:before.pointerEvents, overflow:getComputedStyle(card).overflow,
             disabled:[...document.querySelectorAll('[data-tone-choice],[data-material-choice]')].every(b=>b.getAttribute('aria-disabled')==='true' && !b.disabled),
@@ -114,6 +119,18 @@ class AshMarbleBrowser(unittest.TestCase):
                 self.assertEqual(initial["hero"], rgb(ASH["accents"]["heroMetric"] if active else colors["ink-1"]))
                 self.assertEqual(initial["secondary"], rgb(colors["ink-1"]))
                 self.assertEqual(initial["change"], rgb(colors["ink-3"]))
+                self.assertEqual(initial["track"], rgb(colors["surface-2"]))
+                if active:
+                    dc = ASH["dataColors"]["byTone"][tone]
+                    self.assertEqual(initial["priorBar"], rgb(dc["priorPeriod"]))
+                    self.assertEqual(initial["priorBorder"], rgb(dc["priorBorder"]))
+                    self.assertEqual(initial["currentBar"], rgb(dc["currentPeriod"]))
+                    self.assertEqual(initial["fills"], [rgb(dc[k]) for k in ("s1", "s2", "s3", "other")])
+                else:
+                    self.assertEqual(initial["priorBar"], rgb(colors["surface-2"]))
+                    self.assertEqual(initial["priorBorder"], rgb(colors["ink-3"]))
+                    self.assertEqual(initial["currentBar"], rgb(colors["s1"]))
+                    self.assertEqual(initial["fills"], [rgb(colors[k]) for k in ("s1", "s2", "s3", "other")])
                 self.assertEqual(initial["texture"], active and material == "marble")
                 self.assertEqual(initial["disabled"], not active)
                 for dimension in ["palette", "tone", "material"]:
@@ -173,6 +190,12 @@ class AshMarbleBrowser(unittest.TestCase):
         ticks = self.page.locator('.yaxis span').evaluate_all("nodes=>nodes.map(n=>{const r=n.getBoundingClientRect(),p=n.parentElement.getBoundingClientRect();return ((r.top+r.bottom)/2-p.top)/p.height;})")
         for actual, expected in zip(ticks, [0, .2, .4, .6, .8, 1]):
             self.assertAlmostEqual(actual, expected, delta=.001)
+        top_clip = self.page.evaluate("""() => {
+          const tick = document.querySelector('.yaxis span').getBoundingClientRect();
+          const scroller = document.querySelector('.chart-scroll').getBoundingClientRect();
+          return tick.top - scroller.top;
+        }""")
+        self.assertGreaterEqual(top_clip, -0.5, "Top y-axis label clipped by .chart-scroll")
         self.assertEqual(self.page.locator('thead th:not([scope="col"])').count(), 0)
         self.assertEqual(self.page.locator('tbody th:not([scope="row"])').count(), 0)
         summary = self.page.locator("summary").first
@@ -180,8 +203,13 @@ class AshMarbleBrowser(unittest.TestCase):
         summary.press("Enter")
         self.assertTrue(self.page.locator("details").first.evaluate("n=>n.open"))
         self.assertIn("本期与上期对应日", self.page.locator("details").first.aria_snapshot())
-        self.assertEqual(self.page.locator(".bar.prior").first.evaluate("n=>getComputedStyle(n).borderStyle"), "dashed")
-        self.assertEqual(self.page.locator(".bar.current").first.evaluate("n=>getComputedStyle(n).borderStyle"), "solid")
+        bar_styles = self.page.evaluate("""() => {
+          const p = getComputedStyle(document.querySelector('.bar.prior'));
+          const c = getComputedStyle(document.querySelector('.bar.current'));
+          return { pBg: p.backgroundColor, pBorder: p.borderTopColor, cBg: c.backgroundColor, cBorder: c.borderTopColor };
+        }""")
+        self.assertNotEqual(bar_styles["pBg"], bar_styles["pBorder"], "Prior bar must remain framed/outlined")
+        self.assertEqual(bar_styles["cBg"], bar_styles["cBorder"], "Current bar must remain solid-filled")
 
     def test_03_keyboard_focus_persistence_auto_and_invalid_storage(self) -> None:
         self.page.locator("summary").first.focus()
@@ -260,6 +288,9 @@ class AshMarbleBrowser(unittest.TestCase):
         self.assertFalse(self.snapshot()["texture"])
         self.assertTrue(self.snapshot()["disabled"])
         self.assertEqual(self.page.locator('[data-tone-choice="pale"]').evaluate("n=>getComputedStyle(n).outlineWidth"), "1px")
+        self.assertEqual(self.page.locator(".bar.prior").first.evaluate("n=>getComputedStyle(n).borderTopStyle"), "dashed")
+        self.assertEqual(self.page.locator(".bar.current").first.evaluate("n=>getComputedStyle(n).borderTopStyle"), "solid")
+        self.assertEqual(self.page.locator(".track").first.evaluate("n=>getComputedStyle(n).outlineWidth"), "1px")
         self.page.emulate_media(forced_colors="none")
         self.page.wait_for_function("document.querySelector('[data-tone-choice]').getAttribute('aria-disabled') === 'false'")
         guard = self.page.evaluate("""() => {

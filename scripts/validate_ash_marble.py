@@ -111,24 +111,38 @@ def validate(repo: Path, baseline_ref: str) -> None:
 
     css = (repo / "examples/ash-marble.css").read_text(encoding="utf-8")
     host = (repo / "examples/ash-marble-demo.css").read_text(encoding="utf-8")
-    selector = ':root[data-palette="ash-marble"][data-resolved-theme="light"]'
-    pale = css_values(css, selector)
-    gray = pale | css_values(css, selector + '[data-ash-tone="gray"]')
-    for tone, values in [("pale", pale), ("gray", gray)]:
-        for name, color in ash["tones"][tone].items():
-            require(normalize(values[name]) == normalize(color), f"CSS/token mismatch: {tone}.{name}")
-        for name in ["s1", "s2", "s3", "s4", "s5", "other"]:
-            require(normalize(values[name]) == normalize(ash["dataColors"][name]), f"Data token mismatch: {name}")
-            require(values["data-" + name] == "var(--" + name + ")", f"Data alias mismatch: {name}")
-        require(normalize(values["accent-hero"]) == normalize(ash["accents"]["heroMetric"]), "Hero accent mismatch")
-        require(normalize(values["accent-secondary"]) == normalize(ash["accents"]["secondaryMetric"]), "Secondary accent mismatch")
-        for period in ["prior", "current"]:
-            require(normalize(values["data-" + period + "-period"]) == normalize(ash["dataColors"][period + "Period"]), f"Period color mismatch: {period}")
+    require(set(ash["dataColors"]["byTone"]) == {"pale", "gray"}, "Missing per-tone dataColors.byTone")
+    default_dc = ash["dataColors"]["byTone"][ash["defaultTone"]]
+    for key in ["s1", "s2", "s3", "s4", "s5", "other", "priorPeriod", "priorBorder", "currentPeriod", "seq", "heat"]:
+        require(ash["dataColors"][key] == default_dc[key], f"Top-level dataColors.{key} out of sync with default tone")
+    for base_sel in [
+        ':root[data-palette="ash-marble"][data-resolved-theme="light"]',
+        ':root[data-palette="ash-marble"]:not([data-resolved-theme])',
+    ]:
+        pale = css_values(css, base_sel)
+        gray = pale | css_values(css, base_sel + '[data-ash-tone="gray"]')
+        for tone, values in [("pale", pale), ("gray", gray)]:
+            tone_dc = ash["dataColors"]["byTone"][tone]
+            for name, color in ash["tones"][tone].items():
+                require(normalize(values[name]) == normalize(color), f"CSS/token mismatch ({base_sel}): {tone}.{name}")
+            for name in ["s1", "s2", "s3", "s4", "s5", "other"]:
+                require(normalize(values[name]) == normalize(tone_dc[name]), f"Data token mismatch: {tone}.{name}")
+                require(values["data-" + name] == "var(--" + name + ")", f"Data alias mismatch: {tone}.{name}")
+            require(normalize(values["accent-hero"]) == normalize(ash["accents"]["heroMetric"]), "Hero accent mismatch")
+            require(normalize(values["accent-secondary"]) == normalize(ash["accents"]["secondaryMetric"]), "Secondary accent mismatch")
+            require(normalize(values["data-prior-period"]) == normalize(tone_dc["priorPeriod"]), f"Prior period mismatch: {tone}")
+            require(normalize(values["data-prior-border"]) == normalize(tone_dc["priorBorder"]), f"Prior border mismatch: {tone}")
+            require(normalize(values["data-current-period"]) == normalize(tone_dc["currentPeriod"]), f"Current period mismatch: {tone}")
+            for ramp in ["seq", "heat"]:
+                require(len(tone_dc[ramp]) == 8, f"{tone}.{ramp} must have 8 steps")
+                for idx, hex_val in enumerate(tone_dc[ramp]):
+                    require(normalize(values[f"{ramp}-{idx}"]) == normalize(hex_val), f"Ramp CSS mismatch: {tone}.{ramp}-{idx}")
     for mode, values in [("light", css_values(host, ":root")), ("dark", css_values(host, ':root[data-resolved-theme="dark"]'))]:
         for name in ["page", "surface-1", "surface-2", "ink-1", "ink-2", "ink-3", "grid", "axis", "hairline", "wash", "focus", "s1", "s2", "s3", "s4", "s5", "other"]:
             require(normalize(values[name]) == normalize(basic["colors"][mode][name]), f"Demo base token mismatch: {mode}.{name}")
-    print("PASS: every overlay color/alias and demo light/dark base CSS agrees with JSON")
+    print("PASS: every overlay color/alias/ramp (including no-JS light fallback) and demo base CSS agrees with JSON")
 
+    selector = ':root[data-palette="ash-marble"][data-resolved-theme="light"]'
     material = ash["material"]["marble"]
     opacity = material["opacity"]
     require(0 < opacity <= .12, "Texture opacity exceeds the reviewed cap")
@@ -168,7 +182,24 @@ def validate(repo: Path, baseline_ref: str) -> None:
             ratios.append(ratio)
             require(ratio >= 4.5, f"Text contrast failed after texture: {tone}.{ink}: {ratio:.3f}")
         require(contrast(ash["accents"]["heroMetric"], colors["page"]) >= 4.5, f"Hero contrast failed: {tone}")
-        print(f"PASS: {tone} text/control/hero colors; conservative textured ink minimum {min(ratios):.3f}:1")
+        require(contrast(colors["surface-2"], colors["surface-1"]) >= 1.15, f"Track/card contrast too weak: {tone}")
+        tone_dc = ash["dataColors"]["byTone"][tone]
+        bar_ratios = []
+        for series in ["s1", "s2", "s3", "s4", "s5", "other"]:
+            for bg_name, bg_hex in [("surface-1", colors["surface-1"]), ("textured-card", darkest), ("surface-2", colors["surface-2"])]:
+                r = contrast(tone_dc[series], bg_hex)
+                bar_ratios.append(r)
+                require(r >= 3.0, f"Bar non-text contrast failed: {tone}.{series} on {bg_name}: {r:.3f}")
+        require(contrast(tone_dc["priorBorder"], colors["surface-1"]) >= 3.0, f"Prior bar border vs card < 3:1: {tone}")
+        require(contrast(tone_dc["priorBorder"], tone_dc["priorPeriod"]) >= 3.0, f"Prior bar border vs fill < 3:1: {tone}")
+        require(contrast(tone_dc["currentPeriod"], tone_dc["priorPeriod"]) >= 3.0, f"Current vs prior bar fill < 3:1: {tone}")
+        for ramp in ["seq", "heat"]:
+            steps = tone_dc[ramp]
+            require(normalize(steps[0]) == normalize(colors["surface-2"]), f"{tone}.{ramp}[0] must match surface-2")
+            lums = [luminance(c) for c in steps]
+            require(all(lums[i] > lums[i + 1] for i in range(len(lums) - 1)), f"{tone}.{ramp} luminance must strictly decrease")
+        require(contrast(tone_dc["seq"][5], colors["surface-1"]) >= 3.0 and contrast(tone_dc["seq"][5], tone_dc["seq"][1]) >= 3.0, f"Meter seq contrast failed: {tone}")
+        print(f"PASS: {tone} text/control/hero/bar/ramp colors; min textured ink {min(ratios):.3f}:1, min bar/track {min(bar_ratios):.3f}:1")
 
     links = 0
     for source in [repo / "README.md", *sorted((repo / "docs").rglob("*.md"))]:

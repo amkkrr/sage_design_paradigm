@@ -16,6 +16,7 @@
 | [Ash Marble 离线预览](examples/ash-marble-demo.html) | 固定演示数据、双主题／配色／材质切换及精确值表格 |
 | [Ash Marble 审查记录](docs/audits/AUDIT-0001-ash-marble-2026-10-09.md) | 对照全部 15 节范式的发现、修正、验证证据与未测边界 |
 | [现代 Web 平台升级记录](docs/audits/AUDIT-0002-modern-web-guidance-2026-11-13.md) | 对照 `modern-web-guidance` 完成的排版缩放、暗色降级、工具栏、容器查询与验证 |
+| [图表与柱状条配色审查记录](docs/audits/AUDIT-0003-chart-palette-alignment-2026-11-15.md) | 苍白／苍灰双色调下柱状图、分类横条与连续色阶的对比度与色调对齐 |
 | [ADOPTION_TEMPLATE.md](docs/ADOPTION_TEMPLATE.md) | 接入新项目时填写的业务与实现契约 |
 | [EXTRACTION_NOTES.md](docs/EXTRACTION_NOTES.md) | 来源、提取方法、差异取舍与验证边界 |
 

@@ -9,12 +9,12 @@
     "pale": {
       "page": "#F1F2F3",
       "surface-1": "#F9FAFB",
-      "surface-2": "#EDF0F1",
+      "surface-2": "#E4E9EC",
       "ink-1": "#313A41",
       "ink-2": "#55636C",
       "ink-3": "#646F76",
-      "grid": "#E2E7E9",
-      "axis": "#79868D",
+      "grid": "#E0E6E9",
+      "axis": "#6E7C84",
       "hairline": "#D9DFE2",
       "wash": "rgba(49,58,65,0.055)",
       "focus": "#2A78D6"
@@ -26,8 +26,8 @@
       "ink-1": "#30383E",
       "ink-2": "#505F68",
       "ink-3": "#5A656D",
-      "grid": "#D8DDDE",
-      "axis": "#728087",
+      "grid": "#D5DBDD",
+      "axis": "#66747C",
       "hairline": "#CBD1D3",
       "wash": "rgba(48,56,62,0.06)",
       "focus": "#2A78D6"
@@ -41,15 +41,46 @@
     "secondaryMetricRule": "Use selectively when justified by information hierarchy or explicit metric identity, not on every KPI"
   },
   "dataColors": {
-    "s1": "#3F6F8B",
-    "s2": "#64847D",
-    "s3": "#795F6A",
-    "s4": "#97816A",
-    "s5": "#8196A5",
-    "other": "#A8B3BA",
-    "priorPeriod": "#A9B9C2",
-    "currentPeriod": "#3F6F8B",
-    "note": "Series colors identify data, not status. Keep legends, labels, and non-color cues. Inherit existing semantic status tokens until independently validated."
+    "s1": "#3B6B87",
+    "s2": "#4B7975",
+    "s3": "#5C6380",
+    "s4": "#7F6B58",
+    "s5": "#7B5D6B",
+    "other": "#78868F",
+    "priorPeriod": "#D5DFE4",
+    "priorBorder": "#687780",
+    "currentPeriod": "#3B6B87",
+    "seq": ["#E4E9EC", "#D2E0E8", "#B3CBD9", "#8FB0C4", "#6892AC", "#3B6B87", "#2D536A", "#1F3B4D"],
+    "heat": ["#E4E9EC", "#C8D9D7", "#A5C1BE", "#80A7A3", "#5D8B86", "#3E6E69", "#2E5450", "#1F3A38"],
+    "byTone": {
+      "pale": {
+        "s1": "#3B6B87",
+        "s2": "#4B7975",
+        "s3": "#5C6380",
+        "s4": "#7F6B58",
+        "s5": "#7B5D6B",
+        "other": "#78868F",
+        "priorPeriod": "#D5DFE4",
+        "priorBorder": "#687780",
+        "currentPeriod": "#3B6B87",
+        "seq": ["#E4E9EC", "#D2E0E8", "#B3CBD9", "#8FB0C4", "#6892AC", "#3B6B87", "#2D536A", "#1F3B4D"],
+        "heat": ["#E4E9EC", "#C8D9D7", "#A5C1BE", "#80A7A3", "#5D8B86", "#3E6E69", "#2E5450", "#1F3A38"]
+      },
+      "gray": {
+        "s1": "#35627C",
+        "s2": "#436E6A",
+        "s3": "#535A75",
+        "s4": "#73604E",
+        "s5": "#705361",
+        "other": "#6B7982",
+        "priorPeriod": "#C7D2D7",
+        "priorBorder": "#5D6B74",
+        "currentPeriod": "#35627C",
+        "seq": ["#DCE1E2", "#C6D6DF", "#A6C0CF", "#82A4B8", "#5D869F", "#35627C", "#284B60", "#1B3545"],
+        "heat": ["#DCE1E2", "#BDD0CE", "#9AB8B4", "#769E99", "#54827D", "#376560", "#284C48", "#1A3331"]
+      }
+    },
+    "note": "Series colors identify data, not status, and step deeper on gray surfaces to preserve >=3:1 track/card contrast. Keep legends, labels, and non-color cues. Inherit existing semantic status tokens until independently validated."
   },
   "material": {
     "default": "marble",

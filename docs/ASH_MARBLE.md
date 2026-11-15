@@ -2,7 +2,7 @@
 
 > 可选视觉扩展，版本 1.1.0。压缩包中的看板概念是视觉方向，**不是原 cc-usage-viewer / disk-usage 的已实现能力，也不是可直接运行的生产组件库**。原 Sage light / dark token 除版本号外全部原样保留。
 >
-> 基线：[DESIGN_PARADIGM.md](DESIGN_PARADIGM.md)；接入契约：[ADOPTION_TEMPLATE.md](ADOPTION_TEMPLATE.md)；来源边界：[EXTRACTION_NOTES.md](EXTRACTION_NOTES.md)；初始审查：[AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)；现代 Web 升级审查：[AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)。
+> 基线：[DESIGN_PARADIGM.md](DESIGN_PARADIGM.md)；接入契约：[ADOPTION_TEMPLATE.md](ADOPTION_TEMPLATE.md)；来源边界：[EXTRACTION_NOTES.md](EXTRACTION_NOTES.md)；初始审查：[AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)；现代 Web 升级审查：[AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)；图表与柱状条配色审查：[AUDIT-0003](audits/AUDIT-0003-chart-palette-alignment-2026-11-15.md)。
 
 ## 1. 视觉意图与不变约束
 
@@ -32,7 +32,7 @@
 |---|---|---|---|
 | page | `#F1F2F3` | `#E1E4E5` | 纯色画布 |
 | surface-1 | `#F9FAFB` | `#F0F1F1` | 主卡片底色 |
-| surface-2 | `#EDF0F1` | `#DCE1E2` | 次级控件底色 |
+| surface-2 | `#E4E9EC` | `#DCE1E2` | 次级控件与横条底槽 |
 | ink-1 | `#313A41` | `#30383E` | 大多数数字与正文 |
 | ink-2 | `#55636C` | `#505F68` | 次级文字 |
 | ink-3 | `#646F76` | `#5A656D` | 辅助文字，须检查实际叠层 |
@@ -42,7 +42,7 @@
 
 完整值见 [ash-marble.json](../tokens/ash-marble.json)，recipe 见 [ash-marble.css](../examples/ash-marble.css)。原 [design-tokens.json](../tokens/design-tokens.json) 是基线，新文件是普通 JSON **overlay**，不是 DTCG 或自动合并器。
 
-接入时先提供基线 CSS 变量，再按有效模式加载 overlay。recipe 覆盖 `--page`、`--surface-*`、`--ink-*`、网格/轴/边框/hover/focus，以及基线命名的 `--s1..5` / `--other`；`--data-s1..5` / `--data-other` 是对应别名。`--data-prior-period` / `--data-current-period` 用于示例两期比较。其余状态色、seq、heat、几何、排版、层级和动效继承基线，**继承不代表已经适合所有新背景**，目标项目必须复测实际图形、状态文字和控件。
+接入时先提供基线 CSS 变量，再按有效模式加载 overlay。recipe 按 `pale`／`gray` 分档覆盖 `--page`、`--surface-*`、`--ink-*`、网格/轴/边框/hover/focus、基线命名的 `--s1..5` / `--other`（`--data-s1..5` / `--data-other` 为对应别名）、示例两期比较 `--data-prior-period` / `--data-prior-border` / `--data-current-period`，以及与冷石材协调的 `--seq-0..7`（矿物蓝连续色阶）与 `--heat-0..7`（矿物灰青热力色阶，零档对齐 `surface-2`）。其余语义状态色（`good`、`critical`、`warning`、`good-text`）、几何、排版、层级和动效继承基线，**继承不代表已经适合所有新背景**，目标项目必须复测实际图形、状态文字和控件。
 
 ## 3. 纹理适用范围与对比度
 
@@ -92,7 +92,7 @@
 | 成功率 | 127402 成功 / 128430 已完成请求；失败 1028 | 99.2%（1位），分子/分母可见，不冒充完整性或健康认证 |
 | 分类占比 | code 54711、analysis 36346、docs 23631、other 13742；互斥完整且总和 128430 | 分母固定为全部已完成请求，1位小数；实体 ID 固定映射 s1/s2/s3/other |
 
-趋势为零基线、固定 25000 上限、七组本期/上期对应日；图例用虚/实边框及标签区分，不能仅依赖颜色。图表有名称、摘要及原生 details 中的精确表格；表头 scope、数值右对齐。图形和长表仅在自己的容器横滚，页面不整体溢出。样本无缺失/零分母；不得拿该固定样本覆盖目标项目的异常验收。脚本不可用时明确缺失，而非填零。
+趋势为零基线、固定 25000 上限、七组本期/上期对应日；图例用描边柱与实心柱（`forced-colors` 下回退为虚/实系统色描边）及标签区分，不能仅依赖颜色。图表有名称、摘要及原生 details 中的精确表格；表头 scope、数值右对齐。图形和长表仅在自己的容器横滚，页面不整体溢出。样本无缺失/零分母；不得拿该固定样本覆盖目标项目的异常验收。脚本不可用时明确缺失，而非填零。
 
 示例存储使用 `sage-ash-marble-demo:{palette,mode,tone,material}`；mode 回到 auto 删除其 key，并监听 `storage` 事件同步其他标签页修改。tone/material 在非 Ash 浅色或 forced-colors 时以 `aria-disabled="true"` 停用触发但保留选择与工具栏方向键焦点；模式切换保留已展开的精确表格。无字体下载、外部服务或动态 HTML 拼接。
 
@@ -108,7 +108,7 @@ node --check examples/ash-marble-demo.js
 git diff --check
 ```
 
-初始 15 节覆盖矩阵见 [AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)，现代 Web 平台能力升级验证见 [AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)。以下仍是**每个目标项目自己的验收项**，不能因示例通过而默认勾选：
+初始 15 节覆盖矩阵见 [AUDIT-0001](audits/AUDIT-0001-ash-marble-2026-10-09.md)，现代 Web 平台能力升级验证见 [AUDIT-0002](audits/AUDIT-0002-modern-web-guidance-2026-11-13.md)，双灰色调柱状条与连续色阶对齐记录见 [AUDIT-0003](audits/AUDIT-0003-chart-palette-alignment-2026-11-15.md)。以下仍是**每个目标项目自己的验收项**，不能因示例通过而默认勾选：
 
 - [ ] 基线 light/dark 的全部 token 未变；未选择 Ash 的旧组件不受影响。
 - [ ] 所有 palette / auto/light/dark / pale/gray / flat/marble 组合和回退；存储失效、非法值、首帧及系统偏好变化。
